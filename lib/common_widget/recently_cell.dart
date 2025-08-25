@@ -28,10 +28,10 @@ class RecentlyCell extends StatelessWidget {
                   ]),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(10),
-                child: Image.asset(
+                child: Image.network(
                   i0bj["img"].toString(),
                   width: media.width * 0.32,
-                  height: media.width * 0.50,
+                  height: media.width * 0.60,
                   fit: BoxFit.cover,
                 ),
               ),

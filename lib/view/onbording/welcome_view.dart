@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:lib_ms/common/color__extention.dart';
 import 'package:lib_ms/common_widget/round_button.dart';
-import 'package:lib_ms/view/login/sign_up_view.dart';
-import 'package:lib_ms/view/login/sign_in_view.dart';
+import 'package:lib_ms/feature/auth/presentation/screens/sign_up_view.dart';
+import 'package:lib_ms/feature/auth/presentation/screens/sign_in_view.dart';
 import 'package:lib_ms/common/page_transitions.dart';
 import 'package:lib_ms/common/animated_widgets.dart';
 

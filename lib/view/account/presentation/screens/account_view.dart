@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:lib_ms/common/color__extention.dart';
 import 'package:lib_ms/view/onbording/welcome_view.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-// Simple storage class for user data persistence
+import '../cubit/profile_cubit.dart';
+import '../cubit/profile_state.dart';
+
+
 class UserDataStorage {
   static Map<String, dynamic> _userData = {
     'firstName': 'Sarah',
@@ -33,10 +38,8 @@ class AccountView extends StatefulWidget {
 }
 
 class _AccountViewState extends State<AccountView> {
-  // User information that will be loaded from persistent storage
   Map<String, dynamic> userInfo = {};
 
-  // User statistics that would come from user activity data
   final Map<String, int> userStats = {
     'booksRead': 47,
     'favoriteBooks': 18,
@@ -45,7 +48,6 @@ class _AccountViewState extends State<AccountView> {
     'booksOwned': 156,
   };
 
-  // Getters for easy access to user data
   String get fullName => '${userInfo['firstName']} ${userInfo['lastName']}';
   String get userEmail => userInfo['email'] ?? 'No email provided';
   String get userPhone => userInfo['phone'] ?? 'No phone provided';
@@ -64,7 +66,6 @@ class _AccountViewState extends State<AccountView> {
 
   Future<void> _loadUserData() async {
     try {
-      // Load user information from UserDataStorage
       final savedData = UserDataStorage.getUserData();
 
       setState(() {
@@ -79,7 +80,6 @@ class _AccountViewState extends State<AccountView> {
 
   Future<void> _saveUserData() async {
     try {
-      // Save user information to UserDataStorage
       UserDataStorage.saveUserData(userInfo);
 
       debugPrint('User data saved successfully');
@@ -93,20 +93,32 @@ class _AccountViewState extends State<AccountView> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: _buildAppBar(),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            _buildProfileHeader(),
-            const SizedBox(height: 20),
-            _buildStatsSection(),
-            const SizedBox(height: 30),
-            _buildMenuSection(),
-            const SizedBox(height: 20),
-          ],
-        ),
+      body: BlocBuilder<ProfileCubit, ProfileState>(
+        builder: (context, state) {
+          if (state is ProfileLoading) {
+            return const Center(child: CircularProgressIndicator());
+          } else if (state is ProfileLoaded) {
+            final profile = state.profile;
+            return SingleChildScrollView(
+              child: Column(
+                children: [
+                  _buildProfileHeader(profile),
+                  const SizedBox(height: 20),
+                  _buildStatsSection(),
+                  const SizedBox(height: 30),
+                  _buildMenuSection(),
+                ],
+              ),
+            );
+          } else if (state is ProfileError) {
+            return Center(child: Text(state.message));
+          }
+          return const SizedBox();
+        },
       ),
     );
   }
+
 
   PreferredSizeWidget _buildAppBar() {
     return AppBar(
@@ -129,7 +141,6 @@ class _AccountViewState extends State<AccountView> {
         IconButton(
           icon: Icon(Icons.edit, color: Tcolor.primary),
           onPressed: () {
-            // Navigate to edit profile
             _showEditProfileDialog();
           },
         ),
@@ -137,7 +148,7 @@ class _AccountViewState extends State<AccountView> {
     );
   }
 
-  Widget _buildProfileHeader() {
+  Widget _buildProfileHeader(Map<String, dynamic> profile) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -176,7 +187,7 @@ class _AccountViewState extends State<AccountView> {
           ),
           const SizedBox(height: 16),
           Text(
-            fullName,
+            '${profile['firstname'] ?? 'Abdullah Kheder'}',
             style: const TextStyle(
               color: Colors.white,
               fontSize: 24,
@@ -210,7 +221,7 @@ class _AccountViewState extends State<AccountView> {
               ),
               const SizedBox(width: 6),
               Text(
-                userEmail,
+                  profile['email'] ?? '',
                 style: TextStyle(
                   color: Colors.white.withOpacity(0.9),
                   fontSize: 13,
@@ -230,7 +241,7 @@ class _AccountViewState extends State<AccountView> {
               ),
               const SizedBox(width: 6),
               Text(
-                userPhone,
+                  profile['phone'] ?? '+963934797368',
                 style: TextStyle(
                   color: Colors.white.withOpacity(0.9),
                   fontSize: 13,
@@ -250,7 +261,7 @@ class _AccountViewState extends State<AccountView> {
               ),
               const SizedBox(width: 6),
               Text(
-                'Member since ${_formatDate(joinDate)}',
+                'Member since ${_formatDate(profile['created_at'] ?? '',)}',
                 style: TextStyle(
                   color: Colors.white.withOpacity(0.9),
                   fontSize: 13,
@@ -270,7 +281,6 @@ class _AccountViewState extends State<AccountView> {
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
         children: [
-          // First row of stats
           Row(
             children: [
               _buildStatCard(
@@ -296,7 +306,6 @@ class _AccountViewState extends State<AccountView> {
             ],
           ),
           const SizedBox(height: 16),
-          // Second row of stats
           Row(
             children: [
               _buildStatCard(
@@ -557,21 +566,18 @@ class _AccountViewState extends State<AccountView> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // First Name Field
               _buildEditField(
                 controller: firstNameController,
                 label: 'First Name',
                 icon: Icons.person_outline,
               ),
               const SizedBox(height: 16),
-              // Last Name Field
               _buildEditField(
                 controller: lastNameController,
                 label: 'Last Name',
                 icon: Icons.person_outline,
               ),
               const SizedBox(height: 16),
-              // Email Field
               _buildEditField(
                 controller: emailController,
                 label: 'Email Address',
@@ -725,25 +731,28 @@ class _AccountViewState extends State<AccountView> {
             ),
           ),
           TextButton(
-            onPressed: () {
-              Navigator.pop(context); // Close the dialog
+            onPressed: () async {
+              Navigator.pop(context);
 
-              // Navigate to WelcomeView and clear all previous routes
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const WelcomeView(),
-                ),
-                (route) => false, // Remove all previous routes
-              );
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.remove('auth_token');
 
-              // Show success message
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Signed out successfully!'),
-                  backgroundColor: Colors.red,
-                ),
-              );
+              if (context.mounted) {
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (context) => const WelcomeView()),
+                      (route) => false,
+                );
+              }
+
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Signed out successfully!'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
             },
             child: const Text(
               'Sign Out',
@@ -774,7 +783,7 @@ class _AccountViewState extends State<AccountView> {
       ];
       return '${months[date.month - 1]} ${date.year}';
     } catch (e) {
-      return dateString; // Return original string if parsing fails
+      return dateString;
     }
   }
 
@@ -822,7 +831,7 @@ class _AccountViewState extends State<AccountView> {
 
   Future<void> _updateProfile(
       String firstName, String lastName, String email) async {
-    // Validate inputs
+
     if (firstName.trim().isEmpty ||
         lastName.trim().isEmpty ||
         email.trim().isEmpty) {
@@ -835,7 +844,7 @@ class _AccountViewState extends State<AccountView> {
       return;
     }
 
-    // Basic email validation
+
     if (!email.contains('@') || !email.contains('.')) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -846,17 +855,14 @@ class _AccountViewState extends State<AccountView> {
       return;
     }
 
-    // Update user information
     setState(() {
       userInfo['firstName'] = firstName.trim();
       userInfo['lastName'] = lastName.trim();
       userInfo['email'] = email.trim();
     });
 
-    // Save the updated information persistently
     await _saveUserData();
 
-    // Show success message (only if widget is still mounted)
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -870,7 +876,6 @@ class _AccountViewState extends State<AccountView> {
       );
     }
 
-    // Here you would typically save to a database or API
     debugPrint('Profile updated and saved: $firstName $lastName - $email');
   }
 }

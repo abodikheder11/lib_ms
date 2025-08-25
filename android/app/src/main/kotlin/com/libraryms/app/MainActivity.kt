@@ -1,4 +1,4 @@
-package com.example.lib_ms
+package com.libraryms.app
 
 import io.flutter.embedding.android.FlutterActivity
 

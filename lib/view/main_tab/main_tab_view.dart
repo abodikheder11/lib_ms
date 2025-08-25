@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:lib_ms/common/color__extention.dart';
-import 'package:lib_ms/view/home/home_view.dart';
+import 'package:lib_ms/feature/cart/presentation/screens/cart_view.dart';
+import 'package:lib_ms/feature/home/presentation/screens/home_view.dart';
 import 'package:lib_ms/view/search/search_view.dart';
 import 'package:lib_ms/view/our_books/our_books_view.dart';
-import 'package:lib_ms/view/account/account_view.dart';
+import 'package:lib_ms/view/account/presentation/screens/account_view.dart';
 import 'package:lib_ms/view/sell_with_us/sell_with_us_view.dart';
 import 'package:lib_ms/view/newsletter/newsletter_view.dart';
 import 'package:lib_ms/view/popup_leasing/popup_leasing_view.dart';
 import 'package:lib_ms/common/animated_widgets.dart';
+
+import '../../feature/wishlist/presentation/screens/wishlist_books_view.dart';
 
 class MainTabView extends StatefulWidget {
   const MainTabView({super.key});
@@ -95,25 +98,10 @@ class _MyWidgetState extends State<MainTabView> {
       case 1:
         return const SearchView(key: ValueKey('search'));
       case 2:
-        return const Center(
-          key: ValueKey('wishlist'),
-          child: FadeInAnimation(
-            child: Text(
-              'WishList',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-          ),
-        );
+        return const FavoriteBooksView(key: ValueKey('wishlist'), token: '',);
       case 3:
-        return const Center(
-          key: ValueKey('cart'),
-          child: FadeInAnimation(
-            child: Text(
-              'Cart',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-          ),
-        );
+        return CartView(key: ValueKey('Cart'));
+
       default:
         return HomeView(
           key: const ValueKey('home'),
@@ -352,10 +340,9 @@ class _MyWidgetState extends State<MainTabView> {
 
   void _handleMenuNavigation(int index) {
     switch (index) {
-      case 0: // Home
-        // Already on home, no navigation needed
+      case 0:
         break;
-      case 1: // Our Books
+      case 1:
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -363,13 +350,17 @@ class _MyWidgetState extends State<MainTabView> {
           ),
         );
         break;
-      case 2: // Our Stores
-        // TODO: Navigate to Our Stores view
+      case 2:
         debugPrint('Navigate to Our Stores');
         break;
-      case 3: // Favorite Books
+      case 3:
         // TODO: Navigate to Favorite Books view
-        debugPrint('Navigate to Favorite Books');
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const FavoriteBooksView(token: '',),
+          ),
+        );
         break;
       case 4: // Sell With Us
         Navigator.push(

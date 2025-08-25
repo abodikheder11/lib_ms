@@ -9,7 +9,7 @@ class TopPicksCell extends StatelessWidget {
   Widget build(BuildContext context) {
     var media = MediaQuery.of(context).size;
     return SizedBox(
-        width: media.width * 0.32,
+        width: media.width * 0.4,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
@@ -26,10 +26,10 @@ class TopPicksCell extends StatelessWidget {
                   ]),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(10),
-                child: Image.asset(
+                child: Image.network(
                   i0bj["img"].toString(),
-                  width: media.width * 0.32,
-                  height: media.width * 0.50,
+                  width: media.width * 0.4,
+                  height: media.width * 0.6,
                   fit: BoxFit.cover,
                 ),
               ),

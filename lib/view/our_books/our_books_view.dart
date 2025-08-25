@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:lib_ms/common/color__extention.dart';
+
+import '../../feature/cart/presentation/bloc/cart_cubit.dart';
+import '../../feature/home/data/models/book_model.dart';
+import '../../feature/home/data/repository/book_repository.dart';
 
 class OurBooksView extends StatefulWidget {
   const OurBooksView({super.key});
@@ -18,7 +23,65 @@ class _OurBooksViewState extends State<OurBooksView>
   String _selectedCategory = 'All';
   String _sortBy = 'Title';
   bool _isGridView = false;
+  BookRepository repo = BookRepository();
   List<Map<String, dynamic>> _filteredBooks = [];
+  Set<int> _favoriteBookIds = {};
+
+  Widget _coverImage(String? src, {BoxFit fit = BoxFit.cover}) {
+    if (src == null || src.isEmpty) return _imageFallback();
+    final isNetwork = src.startsWith('http');
+    return isNetwork
+        ? Image.network(src, fit: fit, errorBuilder: (c, e, s) => _imageFallback())
+        : Image.asset(src, fit: fit, errorBuilder: (c, e, s) => _imageFallback());
+  }
+
+  Widget _imageFallback() {
+    return Container(
+      color: Tcolor.dColor,
+      child: Icon(Icons.book, color: Tcolor.subTitle, size: 40),
+    );
+  }
+  bool _isFavorite(int bookId) {
+    // You can keep a Set<int> of favorite IDs in the state
+    return _favoriteBookIds.contains(bookId);
+  }
+
+  void _toggleFavorite(Map<String, dynamic> book) async {
+    final bookId = book["id"];
+    try {
+      if (_isFavorite(bookId)) {
+        // TODO: implement remove from favorite API if available
+        _favoriteBookIds.remove(bookId);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${book["title"]} removed from favorites 💔'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      } else {
+        await repo.addToFavorite(bookId);
+        _favoriteBookIds.add(bookId);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${book["title"]} added to favorites ❤️'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+
+      setState(() {}); // refresh the UI
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to toggle favorite: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
 
   final List<String> _categories = [
     'All',
@@ -36,168 +99,34 @@ class _OurBooksViewState extends State<OurBooksView>
     'Price',
     'Year',
   ];
-  final List<Map<String, dynamic>> featuredBooks = [
-    {
-      "id": 1,
-      "title": "The Heart Of Hell",
-      "author": "Mitch Weiss",
-      "image": "assets/images/s1.jpg",
-      "description":
-          "The untold story of courage and sacrifice in the shadow of Iwo Jima. A gripping tale of heroism during World War II.",
-      "rating": 4.5,
-      "price": 12.99,
-      "category": "Classic Literature",
-      "pages": 320,
-      "publishYear": 2019,
-    },
-    {
-      "id": 2,
-      "title": "Ardennes 1944",
-      "author": "Antony Beevor",
-      "image": "assets/images/s2.jpg",
-      "description":
-          "International bestseller and award-winning history book about the Battle of the Bulge during World War II.",
-      "rating": 4.8,
-      "price": 14.99,
-      "category": "Classic Literature",
-      "pages": 456,
-      "publishYear": 2015,
-    },
-    {
-      "id": 3,
-      "title": "War In The Gothic Line",
-      "author": "Christian Jennings",
-      "image": "assets/images/s3.jpg",
-      "description":
-          "Through the eyes of thirteen men & women from seven different nations during the Italian Campaign of WWII.",
-      "rating": 4.7,
-      "price": 13.99,
-      "category": "Science Fiction",
-      "pages": 384,
-      "publishYear": 2017,
-    },
-    {
-      "id": 4,
-      "title": "Modern Romance",
-      "author": "Aziz Ansari",
-      "image": "assets/images/10.jpg",
-      "description":
-          "A hilarious and insightful look at modern dating culture, exploring how technology has changed the way we find love.",
-      "rating": 4.6,
-      "price": 11.99,
-      "category": "Romance",
-      "pages": 288,
-      "publishYear": 2015,
-    },
-    {
-      "id": 5,
-      "title": "The Art of Living",
-      "author": "Thich Nhat Hanh",
-      "image": "assets/images/11.jpg",
-      "description":
-          "A guide to mindfulness and meditation, teaching readers how to live peacefully and mindfully in the present moment.",
-      "rating": 4.3,
-      "price": 13.49,
-      "category": "Coming of Age",
-      "pages": 224,
-      "publishYear": 2017,
-    },
-    {
-      "id": 6,
-      "title": "Digital Minimalism",
-      "author": "Cal Newport",
-      "image": "assets/images/12.jpg",
-      "description":
-          "A philosophy for living better with less technology, helping readers reclaim their focus and well-being.",
-      "rating": 4.9,
-      "price": 15.99,
-      "category": "Fantasy",
-      "pages": 304,
-      "publishYear": 2019,
-    },
-    {
-      "id": 7,
-      "title": "Biography Collection",
-      "author": "Various Authors",
-      "image": "assets/images/13.jpg",
-      "description":
-          "A comprehensive collection of inspiring biographies from influential figures throughout history.",
-      "rating": 4.4,
-      "price": 18.99,
-      "category": "Classic Literature",
-      "pages": 512,
-      "publishYear": 2020,
-    },
-    {
-      "id": 8,
-      "title": "Culinary Adventures",
-      "author": "Gordon Ramsay",
-      "image": "assets/images/14.png",
-      "description":
-          "A cookbook filled with exciting recipes and culinary techniques from around the world.",
-      "rating": 4.7,
-      "price": 22.99,
-      "category": "Romance",
-      "pages": 368,
-      "publishYear": 2021,
-    },
-    {
-      "id": 9,
-      "title": "Fiction Masterpiece",
-      "author": "Margaret Atwood",
-      "image": "assets/images/15.jpg",
-      "description":
-          "A thought-provoking work of fiction that explores themes of identity, society, and human nature.",
-      "rating": 4.6,
-      "price": 16.99,
-      "category": "Science Fiction",
-      "pages": 432,
-      "publishYear": 2018,
-    },
-    {
-      "id": 10,
-      "title": "Children's Wonder",
-      "author": "Roald Dahl",
-      "image": "assets/images/16.jpg",
-      "description":
-          "A delightful children's book filled with imagination, adventure, and valuable life lessons.",
-      "rating": 4.8,
-      "price": 9.99,
-      "category": "Coming of Age",
-      "pages": 192,
-      "publishYear": 2016,
-    },
-    {
-      "id": 11,
-      "title": "Business Strategy",
-      "author": "Michael Porter",
-      "image": "assets/images/17.jpg",
-      "description":
-          "Essential business strategies and insights for entrepreneurs and business leaders in the modern economy.",
-      "rating": 4.5,
-      "price": 24.99,
-      "category": "Fantasy",
-      "pages": 448,
-      "publishYear": 2019,
-    },
-    {
-      "id": 12,
-      "title": "Graphic Novel Epic",
-      "author": "Neil Gaiman",
-      "image": "assets/images/18.jpg",
-      "description":
-          "A stunning graphic novel that combines beautiful artwork with compelling storytelling.",
-      "rating": 4.9,
-      "price": 19.99,
-      "category": "Fantasy",
-      "pages": 256,
-      "publishYear": 2020,
-    },
-  ];
+  final _bookRepo = BookRepository();
+  List<Map<String, dynamic>> featuredBooks = [];
+  bool _isLoading = true;
+  String? _loadError;
+
+  Future<void> _loadBooks() async {
+    try {
+      final books = await _bookRepo.fetchBooks();
+      setState(() {
+        featuredBooks = books.map((b) => b.toUiMap()).toList();
+        _filteredBooks = List.from(featuredBooks);
+        _sortBooks();
+        _isLoading = false;
+        _loadError = null;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+        _loadError = 'Failed to load books';
+      });
+    }
+  }
+
 
   @override
   void initState() {
     super.initState();
+    _loadBooks();
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 1000),
       vsync: this,
@@ -236,9 +165,9 @@ class _OurBooksViewState extends State<OurBooksView>
     setState(() {
       _filteredBooks = featuredBooks.where((book) {
         final matchesSearch = book['title']
-                .toString()
-                .toLowerCase()
-                .contains(_searchController.text.toLowerCase()) ||
+            .toString()
+            .toLowerCase()
+            .contains(_searchController.text.toLowerCase()) ||
             book['author']
                 .toString()
                 .toLowerCase()
@@ -347,31 +276,31 @@ class _OurBooksViewState extends State<OurBooksView>
           },
           itemBuilder: (context) => _sortOptions
               .map((option) => PopupMenuItem(
-                    value: option,
-                    child: Row(
-                      children: [
-                        Icon(
-                          _getSortIcon(option),
-                          color: _sortBy == option
-                              ? Tcolor.primary
-                              : Tcolor.subTitle,
-                          size: 20,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Sort by $option',
-                          style: TextStyle(
-                            color: _sortBy == option
-                                ? Tcolor.primary
-                                : Tcolor.text,
-                            fontWeight: _sortBy == option
-                                ? FontWeight.w600
-                                : FontWeight.w400,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ))
+            value: option,
+            child: Row(
+              children: [
+                Icon(
+                  _getSortIcon(option),
+                  color: _sortBy == option
+                      ? Tcolor.primary
+                      : Tcolor.subTitle,
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Sort by $option',
+                  style: TextStyle(
+                    color: _sortBy == option
+                        ? Tcolor.primary
+                        : Tcolor.text,
+                    fontWeight: _sortBy == option
+                        ? FontWeight.w600
+                        : FontWeight.w400,
+                  ),
+                ),
+              ],
+            ),
+          ))
               .toList(),
         ),
       ],
@@ -415,11 +344,11 @@ class _OurBooksViewState extends State<OurBooksView>
                 prefixIcon: Icon(Icons.search, color: Tcolor.primary),
                 suffixIcon: _searchController.text.isNotEmpty
                     ? IconButton(
-                        icon: Icon(Icons.clear, color: Tcolor.subTitle),
-                        onPressed: () {
-                          _searchController.clear();
-                        },
-                      )
+                  icon: Icon(Icons.clear, color: Tcolor.subTitle),
+                  onPressed: () {
+                    _searchController.clear();
+                  },
+                )
                     : null,
                 border: InputBorder.none,
                 contentPadding: const EdgeInsets.symmetric(
@@ -464,7 +393,7 @@ class _OurBooksViewState extends State<OurBooksView>
                       style: TextStyle(
                         color: isSelected ? Colors.white : Tcolor.text,
                         fontWeight:
-                            isSelected ? FontWeight.w600 : FontWeight.w400,
+                        isSelected ? FontWeight.w600 : FontWeight.w400,
                         fontSize: 12,
                       ),
                     ),
@@ -479,13 +408,22 @@ class _OurBooksViewState extends State<OurBooksView>
   }
 
   Widget _buildBooksContent() {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_loadError != null) {
+      return Center(
+        child: Text(
+          _loadError!,
+          style: TextStyle(color: Tcolor.subTitle, fontSize: 14),
+        ),
+      );
+    }
     if (_filteredBooks.isEmpty) {
       return _buildEmptyState();
     }
-
     return _isGridView ? _buildGridView() : _buildListView();
   }
-
   Widget _buildEmptyState() {
     return Center(
       child: Column(
@@ -662,18 +600,7 @@ class _OurBooksViewState extends State<OurBooksView>
                     topLeft: Radius.circular(16),
                     topRight: Radius.circular(16),
                   ),
-                  child: Image.asset(
-                    book["image"],
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => Container(
-                      color: Tcolor.dColor,
-                      child: Icon(
-                        Icons.book,
-                        color: Tcolor.subTitle,
-                        size: 40,
-                      ),
-                    ),
-                  ),
+                  child: _coverImage(book["image"]),
                 ),
               ),
             ),
@@ -794,18 +721,7 @@ class _OurBooksViewState extends State<OurBooksView>
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(12),
-          child: Image.asset(
-            book["image"],
-            fit: BoxFit.cover,
-            errorBuilder: (context, error, stackTrace) => Container(
-              color: Tcolor.dColor,
-              child: Icon(
-                Icons.book,
-                color: Tcolor.subTitle,
-                size: 40,
-              ),
-            ),
-          ),
+          child: _coverImage(book["image"]),
         ),
       ),
     );
@@ -827,7 +743,7 @@ class _OurBooksViewState extends State<OurBooksView>
         ),
         const SizedBox(height: 4),
         Text(
-          'by ${book["author"]}',
+          'By ${book["author"].toString().toUpperCase()}',
           style: TextStyle(
             color: Tcolor.primary,
             fontSize: 12,
@@ -941,10 +857,10 @@ class _OurBooksViewState extends State<OurBooksView>
         SizedBox(
           height: 32,
           child: IconButton(
-            onPressed: () => _onAddToWishlist(book),
+            onPressed: () => _toggleFavorite(book),
             icon: Icon(
-              Icons.favorite_outline,
-              color: Tcolor.color2,
+              _isFavorite(book["id"]) ? Icons.favorite : Icons.favorite_border,
+              color: _isFavorite(book["id"]) ? Colors.red : Tcolor.color2,
               size: 18,
             ),
             style: IconButton.styleFrom(
@@ -954,18 +870,26 @@ class _OurBooksViewState extends State<OurBooksView>
               ),
             ),
           ),
+
         ),
       ],
     );
   }
 
-  void _onAddToCart(Map<String, dynamic> book) {
-    debugPrint('Added to cart: ${book["title"]}');
-    // Implement cart functionality
+  void _onAddToCart(Map<String, dynamic> bookMap) {
+    final book = Book(
+      id: bookMap["id"],
+      title: bookMap["title"],
+      description: bookMap["description"] ?? "",
+      price: double.tryParse(bookMap["price"].toString()) ?? 0.0,
+      imagePath: bookMap["image"] ?? "",
+    );
+
+    context.read<CartCubit>().addToCart(book);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('${book.title} added to cart 🛒')),
+    );
   }
 
-  void _onAddToWishlist(Map<String, dynamic> book) {
-    debugPrint('Added to wishlist: ${book["title"]}');
-    // Implement wishlist functionality
-  }
 }

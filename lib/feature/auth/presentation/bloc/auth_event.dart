@@ -15,6 +15,7 @@ class SignUpRequested extends AuthEvent {
   final String location;
   final String password;
   final String passwordConfirmation;
+  final bool isAuthor;
   const SignUpRequested({
     required this.firstname,
     required this.lastname,
@@ -22,13 +23,15 @@ class SignUpRequested extends AuthEvent {
     required this.location,
     required this.password,
     required this.passwordConfirmation,
+    this.isAuthor = false,
   });
 }
 
 class SignInRequested extends AuthEvent {
   final String email, password;
   final bool rememberMe;
-  SignInRequested({required this.email, required this.password, this.rememberMe = false});
+  final bool isAuthor;
+  SignInRequested({required this.email, required this.password, this.rememberMe = false,this.isAuthor = false,});
 }
 
 class VerifyEmailRequested extends AuthEvent {

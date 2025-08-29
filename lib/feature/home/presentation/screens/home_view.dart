@@ -162,41 +162,7 @@ class _HomeViewState extends State<HomeView> {
                             ),
                           ),
 
-                          //////////////////////////////////
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 20),
-                            child: Row(
-                              children: [
-                                Text(
-                                  "Genres",
-                                  style: TextStyle(
-                                    color: Tcolor.text,
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          // SizedBox(
-                          //   height: media.width * 0.6,
-                          //   child: ListView.builder(
-                          //     padding: const EdgeInsets.symmetric(
-                          //         horizontal: 8, vertical: 15),
-                          //     scrollDirection: Axis.horizontal,
-                          //     itemCount: genresArr.length,
-                          //     itemBuilder: (context, index) {
-                          //       var b0bj = genresArr[index] as Map? ?? {};
-                          //       return GenresCell(
-                          //         b0bj: b0bj,
-                          //         bgcolor: index % 2 == 0
-                          //             ? Tcolor.color1
-                          //             : Tcolor.color2,
-                          //       );
-                          //     },
-                          //   ),
-                          // ),
-                          SizedBox(height: media.width * 0.1),
+
                           ///////////////////////////////
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 20),

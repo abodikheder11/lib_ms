@@ -15,9 +15,8 @@ import 'feature/home/presentation/cubit/books_cubit.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final prefs = await SharedPreferences.getInstance();
-
   final token = prefs.getString('auth_token');
-
+  // prefs.remove('auth_token');
 
   runApp(
     MultiBlocProvider(

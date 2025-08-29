@@ -1,5 +1,7 @@
-import 'package:dio/dio.dart';
+import 'dart:io'; // For SocketException, HttpException
+import 'package:http/http.dart' as http;
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../data/models/auth_user.dart';
 import '../../data/repository/auth_repository.dart';
 import 'auth_event.dart';
@@ -36,20 +38,28 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         location: e.location,
         password: e.password,
         passwordConfirmation: e.passwordConfirmation,
+        isAuthor: e.isAuthor
       );
       final msg = (res['message'] ?? res['msg'] ?? 'Registered. Verify email.') as String;
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('is_author_${e.email}', e.isAuthor);
+
       emit(AuthUnverified(e.email, message: msg));
     } catch (err) {
       emit(AuthError(_prettyError(err)));
     }
   }
-
   Future<void> _onSignIn(SignInRequested e, Emitter<AuthState> emit) async {
     emit(AuthLoading());
     try {
-      final (user, token) = await _repo.signIn(email: e.email, password: e.password);
+      final (user, token) = await _repo.signIn(
+        email: e.email,
+        password: e.password,
+        isAuthor: e.isAuthor,
+      );
       if (token == null) {
-        emit(AuthUnverified(e.email, message: 'Please verify your email or check credentials.'));
+        emit(AuthUnverified(e.email,
+            message: 'Please verify your email or check credentials.'));
         return;
       }
       emit(AuthAuthenticated(user ?? const AuthUser()));
@@ -57,6 +67,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       emit(AuthError(_prettyError(err)));
     }
   }
+
 
   Future<void> _onVerifyEmail(VerifyEmailRequested e, Emitter<AuthState> emit) async {
     emit(AuthLoading());
@@ -99,18 +110,24 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       await _repo.signOut();
       emit(AuthUnauthenticated());
     } catch (err) {
+      // Even if sign-out fails, clear local auth state.
       emit(AuthUnauthenticated());
     }
   }
 
   String _prettyError(Object err) {
-    if (err is DioException) {
-      final status = err.response?.statusCode;
-      final data = err.response?.data;
-      final msg = data is Map && data['message'] != null
-          ? data['message'].toString()
-          : err.message ?? 'Network error';
-      return status != null ? '[$status] $msg' : msg;
+    if (err is http.ClientException) {
+      final uriInfo = err.uri != null ? ' (${err.uri})' : '';
+      return 'Request error: ${err.message}$uriInfo';
+    }
+    if (err is SocketException) {
+      return 'Network error: ${err.message.isNotEmpty ? err.message : 'Please check your internet connection.'}';
+    }
+    if (err is HttpException) {
+      return 'HTTP error: ${err.message}';
+    }
+    if (err is FormatException) {
+      return 'Bad response format.';
     }
     return err.toString();
   }

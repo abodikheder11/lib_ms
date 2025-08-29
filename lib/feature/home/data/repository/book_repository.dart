@@ -1,9 +1,10 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:dio/dio.dart';
+
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
 import '../../../../config/env.dart';
 import '../../../home/data/models/book_model.dart';
 
@@ -15,6 +16,7 @@ class BookRepository {
   Future<List<Book>> getFavoriteBooks() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('auth_token');
+
     final res = await http.get(
       Uri.parse('$_baseUrl/view-favorite-books'),
       headers: {
@@ -34,6 +36,7 @@ class BookRepository {
   Future<void> addToFavorite(int bookId) async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('auth_token');
+
     final res = await http.post(
       Uri.parse('$_baseUrl/add-book-to-Favorite/$bookId'),
       headers: {
@@ -41,6 +44,7 @@ class BookRepository {
         'Accept': 'application/json',
       },
     );
+
     if (res.statusCode != 200) {
       throw Exception('Failed to add book to favorites');
     }
@@ -49,13 +53,15 @@ class BookRepository {
   Future<List<Book>> fetchBooks() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('auth_token');
+
     final res = await http.get(
-      Uri.parse('${Env.baseUrl}/api/books'),
+      Uri.parse('$_baseUrl/books'),
       headers: {
         'Authorization': 'Bearer $token',
         'Accept': 'application/json',
       },
     );
+
     if (res.statusCode == 200) {
       final List data = jsonDecode(res.body);
       return data.map((e) => Book.fromJson(e)).toList();
@@ -68,28 +74,25 @@ class BookRepository {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('auth_token');
 
-    final dio = Dio();
     final dir = await getApplicationDocumentsDirectory();
     final savePath = '${dir.path}/$fileName';
 
     try {
-      final response = await dio.download(
-        '$_baseUrl/download-books/$bookId',
-        savePath,
-        options: Options(
-          headers: {
-            'Authorization': 'Bearer $token',
-            'Accept': 'application/json',
-          },
-          responseType: ResponseType.bytes,
-          followRedirects: false,
-          validateStatus: (status) => status! < 500,
-        ),
+      final url = Uri.parse('$_baseUrl/download-books/$bookId');
+      final res = await http.get(
+        url,
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+        },
       );
-      if (response.statusCode == 200) {
-        return File(savePath);
+
+      if (res.statusCode == 200) {
+        final file = File(savePath);
+        await file.writeAsBytes(res.bodyBytes);
+        return file;
       } else {
-        throw Exception("Failed to download book: ${response.statusCode}");
+        throw Exception("Failed to download book: ${res.statusCode}");
       }
     } catch (e) {
       throw Exception("Error downloading book: $e");

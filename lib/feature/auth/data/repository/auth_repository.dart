@@ -1,18 +1,22 @@
 import 'dart:convert';
-import 'package:dio/dio.dart';
+import 'dart:io';
+
+import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../../../config/env.dart';
 import '../../../../core/dio_client.dart';
 import '../models/auth_user.dart';
 
 class AuthRepository {
-  AuthRepository({Dio? dio, FlutterSecureStorage? storage})
-      : _dio = dio ?? DioClient.instance,
-        _storage = storage ?? const FlutterSecureStorage();
+  AuthRepository({FlutterSecureStorage? storage})
+      : _storage = storage ?? const FlutterSecureStorage();
 
-  final Dio _dio;
   final FlutterSecureStorage _storage;
   static const _tokenKey = 'auth_token';
+
+  String get _baseUrl => Env.baseUrl;
 
   Future<String?> getToken() => _storage.read(key: _tokenKey);
   Future<void> _saveToken(String token) => _storage.write(key: _tokenKey, value: token);
@@ -25,48 +29,51 @@ class AuthRepository {
     required String location,
     required String password,
     required String passwordConfirmation,
+    bool isAuthor = false,
   }) async {
-    final res = await _dio.post(
-      '/api/register-user',
-      data: {
+    final endpoint = isAuthor ? '/api/register-author' : '/api/register-user';
+
+    final res = await http.post(
+      ApiClient.url(endpoint),
+      headers: ApiClient.defaultHeaders,
+      body: jsonEncode({
         'firstname': firstname,
         'lastname': lastname,
-        'email': email,
         'location': location,
+        'email': email,
         'password': password,
         'password_confirmation': passwordConfirmation,
-      },
-    );
+      }),
+    ).timeout(ApiClient.connectTimeout);
 
-    final data = _asMap(res.data);
+    final data = jsonDecode(res.body);
 
-    if (data.containsKey('token')) {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('auth_token', data['token']);
+    if (res.statusCode != 200 && res.statusCode != 201) {
+      throw Exception(data['message'] ?? 'Registration failed');
     }
 
-    return data;
+    return data as Map<String, dynamic>;
   }
-
-
-
   Future<(AuthUser?, String?)> signIn({
     required String email,
     required String password,
+    bool isAuthor = false,
   }) async {
-    final res = await _dio.post(
-      '/api/login-user',
-      data: {
+    final endpoint = isAuthor ? '/api/login-author' : '/api/login-user';
+
+    final res = await http.post(
+      ApiClient.url(endpoint),
+      headers: ApiClient.defaultHeaders,
+      body: jsonEncode({
         'email': email,
         'password': password,
-      },
-    );
+      }),
+    ).timeout(ApiClient.connectTimeout);
 
-    final data = _asMap(res.data);
+    final data = jsonDecode(res.body);
 
-    if (data.containsKey('token')) {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('auth_token', data['token']);
+    if (res.statusCode != 200) {
+      throw Exception(data['message'] ?? 'Login failed');
     }
 
     final user = data.containsKey('user')
@@ -74,38 +81,45 @@ class AuthRepository {
         : null;
 
     final token = data['token'] as String?;
-
+    final prefs = await SharedPreferences.getInstance();
+    if (token != null) {
+      await prefs.setString('auth_token', token);
+      await prefs.setBool('is_author', isAuthor);
+    }
     return (user, token);
   }
-
 
   Future<Map<String, dynamic>> verifyEmail({
     required String email,
     required String code,
   }) async {
-    final res = await _dio.post(
-      '/api/verify-email-user',
-      data: {
-        'email': email,
-        'code': code,
-      },
+    final res = await http.post(
+      Uri.parse('$_baseUrl/api/verify-email-user'),
+      headers: {'Accept': 'application/json', 'Content-Type': 'application/json'},
+      body: jsonEncode({'email': email, 'code': code}),
     );
-    return _asMap(res.data);
+
+    return jsonDecode(res.body) as Map<String, dynamic>;
   }
 
   Future<Map<String, dynamic>> forgotPassword({
     required String email,
   }) async {
     try {
-      await _dio.get('/sanctum/csrf-cookie');
+      await http.get(Uri.parse('$_baseUrl/sanctum/csrf-cookie'));
     } catch (_) {}
 
-    final res = await _dio.post(
-      '/forgot-password',
-      data: {'email': email},
-      options: Options(headers: {'X-Requested-With': 'XMLHttpRequest'}),
+    final res = await http.post(
+      Uri.parse('$_baseUrl/forgot-password'),
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+      },
+      body: jsonEncode({'email': email}),
     );
-    return _asMap(res.data);
+
+    return jsonDecode(res.body) as Map<String, dynamic>;
   }
 
   Future<Map<String, dynamic>> resetPassword({
@@ -115,55 +129,35 @@ class AuthRepository {
     required String passwordConfirmation,
   }) async {
     try {
-      await _dio.get('/sanctum/csrf-cookie');
+      await http.get(Uri.parse('$_baseUrl/sanctum/csrf-cookie'));
     } catch (_) {}
 
-    final res = await _dio.post(
-      '/reset-password',
-      data: {
+    final res = await http.post(
+      Uri.parse('$_baseUrl/reset-password'),
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+      },
+      body: jsonEncode({
         'email': email,
         'token': token,
         'password': password,
         'password_confirmation': passwordConfirmation,
-      },
-      options: Options(headers: {'X-Requested-With': 'XMLHttpRequest'}),
+      }),
     );
-    return _asMap(res.data);
+
+    return jsonDecode(res.body) as Map<String, dynamic>;
   }
 
   Future<void> signOut() async {
     try {
-      await _dio.post('/logout');
-    } catch (_) {
-    }
+      await http.post(
+        Uri.parse('$_baseUrl/logout'),
+        headers: {'Accept': 'application/json', 'Content-Type': 'application/json'},
+      );
+    } catch (_) {}
+
     await clearToken();
-    _dio.options.headers.remove('Authorization');
   }
-
-  Map<String, dynamic> _asMap(dynamic data) =>
-      data is Map<String, dynamic> ? data : json.decode(json.encode(data)) as Map<String, dynamic>;
-
-  String? _extractToken(Map<String, dynamic> data) {
-    if (data['token'] is String) return data['token'] as String;
-    if (data['access_token'] is String) return data['access_token'] as String;
-    if (data['data'] is Map && (data['data']['token'] is String)) return data['data']['token'] as String;
-    if (data['meta'] is Map && (data['meta']['token'] is String)) return data['meta']['token'] as String;
-    return null;
-  }
-
-  Map<String, dynamic>? _guessUserMap(Map<String, dynamic> data) {
-    final candidates = [
-      data['user'],
-      data['data'],
-      data['payload'],
-    ];
-    for (final c in candidates) {
-      if (c is Map && (c['email'] != null || c['id'] != null)) {
-        return c.cast<String, dynamic>();
-      }
-    }
-    return null;
-  }
-
-
 }

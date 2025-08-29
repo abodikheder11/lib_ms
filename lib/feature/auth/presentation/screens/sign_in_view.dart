@@ -24,6 +24,7 @@ class _SigninViewState extends State<SignInView> {
   final TextEditingController txtPassword = TextEditingController();
 
   bool isStay = false;
+  bool _isAuthor = false;
   bool _isFormValid = false;
   bool _isLoading = false;
   bool _obscurePassword = true;
@@ -78,6 +79,7 @@ class _SigninViewState extends State<SignInView> {
       email: txtEmail.text.trim(),
       password: txtPassword.text,
       rememberMe: isStay,
+      isAuthor: _isAuthor,
     ));
   }
 
@@ -196,16 +198,17 @@ class _SigninViewState extends State<SignInView> {
                 Row(
                   children: [
                     IconButton(
-                      onPressed: () => setState(() => isStay = !isStay),
+                      onPressed: () => setState(() => _isAuthor = !_isAuthor),
                       icon: Icon(
-                        isStay ? Icons.check_box : Icons.check_box_outline_blank,
-                        color: isStay ? Tcolor.primary : Tcolor.subTitle.withOpacity(0.3),
+                        _isAuthor ? Icons.check_box : Icons.check_box_outline_blank,
+                        color: _isAuthor ? Tcolor.primary : Tcolor.subTitle.withOpacity(0.3),
                       ),
                     ),
                     Text(
-                      "Stay Logged In",
+                      "Login as Author",
                       style: TextStyle(color: Tcolor.subTitle.withOpacity(0.3), fontSize: 15),
                     ),
+
                     const Spacer(),
                     TextButton(
                       onPressed: () {

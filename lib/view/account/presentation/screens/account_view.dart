@@ -99,6 +99,7 @@ class _AccountViewState extends State<AccountView> {
             return const Center(child: CircularProgressIndicator());
           } else if (state is ProfileLoaded) {
             final profile = state.profile;
+
             return SingleChildScrollView(
               child: Column(
                 children: [
@@ -114,6 +115,28 @@ class _AccountViewState extends State<AccountView> {
             return Center(child: Text(state.message));
           }
           return const SizedBox();
+        },
+      ),
+
+      floatingActionButton: BlocBuilder<ProfileCubit, ProfileState>(
+        builder: (context, state) {
+          if (state is ProfileLoaded) {
+            final profile = state.profile;
+
+            return FutureBuilder<bool>(
+              future: _getIsAuthor(profile['email']),
+              builder: (context, snapshot) {
+                final isAuthor = snapshot.data ?? false;
+                if (!isAuthor) return const SizedBox.shrink();
+
+                return FloatingActionButton(
+                  onPressed: () => _openAddBookModal(context),
+                  child: const Icon(Icons.add),
+                );
+              },
+            );
+          }
+          return const SizedBox.shrink();
         },
       ),
     );
@@ -149,130 +172,115 @@ class _AccountViewState extends State<AccountView> {
   }
 
   Widget _buildProfileHeader(Map<String, dynamic> profile) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Tcolor.primary, Tcolor.primaryLight],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: const BorderRadius.only(
-          bottomLeft: Radius.circular(30),
-          bottomRight: Radius.circular(30),
-        ),
-      ),
-      child: Column(
-        children: [
-          const SizedBox(height: 20),
-          Container(
-            width: 100,
-            height: 100,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 10,
-                  offset: const Offset(0, 5),
-                ),
-              ],
+    return FutureBuilder<bool>(
+      future: _getIsAuthor(profile['email']),
+      builder: (context, snapshot) {
+        final isAuthor = snapshot.data ?? false;
+        print(isAuthor);
+
+        return Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Tcolor.primary, Tcolor.primaryLight],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
-            child: Icon(
-              Icons.person,
-              size: 50,
-              color: Tcolor.primary,
+            borderRadius: const BorderRadius.only(
+              bottomLeft: Radius.circular(30),
+              bottomRight: Radius.circular(30),
             ),
           ),
-          const SizedBox(height: 16),
-          Text(
-            '${profile['firstname'] ?? 'Abdullah Kheder'}',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 24,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text(
-              '$membershipType Member',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+          child: Column(
             children: [
-              Icon(
-                Icons.email_outlined,
-                color: Colors.white.withOpacity(0.8),
-                size: 16,
-              ),
-              const SizedBox(width: 6),
-              Text(
-                  profile['email'] ?? '',
-                style: TextStyle(
-                  color: Colors.white.withOpacity(0.9),
-                  fontSize: 13,
-                  fontWeight: FontWeight.w400,
+              const SizedBox(height: 20),
+              Container(
+                width: 100,
+                height: 100,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 10,
+                      offset: const Offset(0, 5),
+                    ),
+                  ],
+                ),
+                child: Icon(
+                  Icons.person,
+                  size: 50,
+                  color: Tcolor.primary,
                 ),
               ),
+              const SizedBox(height: 16),
+              Text(
+                '${profile['firstname'] ?? 'User'} ${profile['lastname'] ?? ''}',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 8),
+
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  isAuthor ? "Author" : "Member",
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.email_outlined,
+                      color: Colors.white.withOpacity(0.8), size: 16),
+                  const SizedBox(width: 6),
+                  Text(
+                    profile['email'] ?? '',
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.9),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.calendar_today_outlined,
+                      color: Colors.white.withOpacity(0.8), size: 16),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Member since ${_formatDate(profile['created_at'] ?? '')}',
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.9),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
             ],
           ),
-          const SizedBox(height: 6),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.phone_outlined,
-                color: Colors.white.withOpacity(0.8),
-                size: 16,
-              ),
-              const SizedBox(width: 6),
-              Text(
-                  profile['phone'] ?? '+963934797368',
-                style: TextStyle(
-                  color: Colors.white.withOpacity(0.9),
-                  fontSize: 13,
-                  fontWeight: FontWeight.w400,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.calendar_today_outlined,
-                color: Colors.white.withOpacity(0.8),
-                size: 16,
-              ),
-              const SizedBox(width: 6),
-              Text(
-                'Member since ${_formatDate(profile['created_at'] ?? '',)}',
-                style: TextStyle(
-                  color: Colors.white.withOpacity(0.9),
-                  fontSize: 13,
-                  fontWeight: FontWeight.w400,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -878,4 +886,79 @@ class _AccountViewState extends State<AccountView> {
 
     debugPrint('Profile updated and saved: $firstName $lastName - $email');
   }
+}
+Future<bool> _getIsAuthor(String? email) async {
+  if (email == null) return false;
+  final prefs = await SharedPreferences.getInstance();
+  return prefs.getBool('is_author') ?? false;
+}
+void _openAddBookModal(BuildContext context) {
+  final titleController = TextEditingController();
+  final descController = TextEditingController();
+
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+    ),
+    builder: (ctx) {
+      return Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(ctx).viewInsets.bottom,
+          left: 20,
+          right: 20,
+          top: 20,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text("Add New Book",
+                style: Theme.of(ctx)
+                    .textTheme
+                    .titleLarge
+                    ?.copyWith(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 16),
+            TextField(
+              controller: titleController,
+              decoration: const InputDecoration(
+                labelText: "Book Title",
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: descController,
+              maxLines: 3,
+              decoration: const InputDecoration(
+                labelText: "Description",
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton.icon(
+              onPressed: () {
+                final title = titleController.text.trim();
+                final desc = descController.text.trim();
+
+                if (title.isEmpty) {
+                  ScaffoldMessenger.of(ctx).showSnackBar(
+                    const SnackBar(content: Text("Please enter a title")),
+                  );
+                  return;
+                }
+
+                print("Book added: $title - $desc");
+
+                Navigator.pop(ctx);
+              },
+              icon: const Icon(Icons.save , color: Colors.green,),
+              label: const Text("Save", style: TextStyle(color: Colors.green,),),
+            ),
+            const SizedBox(height: 16),
+          ],
+        ),
+      );
+    },
+  );
 }

@@ -27,7 +27,7 @@ class _SignUpViewState extends State<SignUpView> {
   final txtPassword = TextEditingController();
   final txtConfirmPassword = TextEditingController();
   final  txtCode = TextEditingController();
-
+  bool _isAuthor = false;
   bool isStay = false;
   bool _isFormValid = false;
   bool _obscurePassword = true;
@@ -117,6 +117,7 @@ class _SignUpViewState extends State<SignUpView> {
       location: txtLocation.text.trim(),
       password: txtPassword.text.trim(),
       passwordConfirmation: txtConfirmPassword.text.trim(),
+      isAuthor: _isAuthor,
     ));
   }
 
@@ -167,7 +168,7 @@ class _SignUpViewState extends State<SignUpView> {
 
                   RoundTextField(
                     controller: txtFirstName,
-                    hintText: "First & Last Name",
+                    hintText: "First Name",
                     keyBoardType: TextInputType.name,
                   ),
                   if (_nameError != null)
@@ -258,19 +259,13 @@ class _SignUpViewState extends State<SignUpView> {
                   Row(
                     children: [
                       IconButton(
-                        onPressed: () => setState(() => isStay = !isStay),
+                        onPressed: () => setState(() => _isAuthor = !_isAuthor),
                         icon: Icon(
-                          isStay ? Icons.check_box : Icons.check_box_outline_blank,
-                          color: isStay
-                              ? Tcolor.primary
-                              : Tcolor.subTitle.withOpacity(0.3),
+                          _isAuthor ? Icons.check_box : Icons.check_box_outline_blank,
+                          color: _isAuthor ? Tcolor.primary : Tcolor.subTitle.withOpacity(0.3),
                         ),
                       ),
-                      Expanded(
-                          child: Text("please sign me up for the monthly newsletter.",
-                              style: TextStyle(
-                                  color: Tcolor.subTitle.withOpacity(0.3),
-                                  fontSize: 13))),
+                      const Text("Register as Author"),
                     ],
                   ),
                   const SizedBox(height: 20),

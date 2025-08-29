@@ -5,6 +5,7 @@ class AuthUser {
   final String? lastname;
   final String? email;
   final String? location;
+  final bool isAuthor;
 
   const AuthUser({
     this.id,
@@ -13,7 +14,21 @@ class AuthUser {
     this.lastname,
     this.email,
     this.location,
+    this.isAuthor = false,
   });
+  AuthUser copyWith({
+    int? id,
+    String? email,
+    String? name,
+    bool? isAuthor,
+  }) {
+    return AuthUser(
+      id: id ?? this.id,
+      email: email ?? this.email,
+      name: name ?? this.name,
+      isAuthor: isAuthor ?? this.isAuthor,
+    );
+  }
 
   factory AuthUser.fromJson(Map<String, dynamic> json) {
     return AuthUser(
